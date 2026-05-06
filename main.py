@@ -9,6 +9,7 @@
 """
 
 import json
+import os
 from typing import Any, Dict
 
 import akshare as ak
@@ -17,8 +18,7 @@ import requests
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 DEEPSEEK_MODEL = "deepseek-chat"
-# 你提供的 DeepSeek API Key（按你的要求写死在代码里）
-DEEPSEEK_API_KEY = "sk-73192e3bf8d94fc39b49304ba12b8650"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 OUTPUT_FILE = "data.json"
 
 
