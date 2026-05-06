@@ -1,0 +1,33 @@
+name: Daily Auto Update
+on:
+  schedule:
+    - cron: '0 0 * * *' # UTC时间0点，即北京时间早上8点
+  workflow_dispatch: # 这个指令允许我们随时手动点击运行测试
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 获取最新代码
+        uses: actions/checkout@v3
+
+      - name: 安装 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安装所需的库 (AkShare & Requests)
+        run: pip install akshare requests
+
+      - name: 运行 Python 脚本抓取数据
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: python main.py
+
+      - name: 将新抓取的数据(data.json)保存回仓库
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add data.json
+          git commit -m "Auto-update daily data" || exit 0
+          git push
