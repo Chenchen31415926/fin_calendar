@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 金融日历</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #0a0d14;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #2a3142;
+        border-radius: 9999px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+      const mockEvents = {
+        "2026-05-06": [
+          {
+            id: "1",
+            tier: "宏观经济",
+            event: "美联储利率决议公布",
+            linkedSector: ["银行", "地产", "科技"],
+            impact: "利好",
+            time: "02:00",
+            description:
+              "美联储宣布维持利率不变，符合市场预期。鲍威尔表示将继续关注通胀数据，暗示年内可能降息25个基点。",
+            source: "Federal Reserve",
+            logicChain: ["美联储暗示降息预期", "市场流动性宽松预期增强", "利率敏感型资产受益", "地产、科技成长股估值修复"],
+          },
+          {
+            id: "2",
+            tier: "个股微观",
+            event: "苹果Q2财报发布",
+            linkedSector: ["消费电子", "半导体"],
+            impact: "利好",
+            time: "16:30",
+            description: "苹果公司发布2026财年第二季度财报，营收超预期15%，服务业务持续增长，AI相关产品线表现亮眼。",
+            source: "Apple Inc.",
+            logicChain: ["苹果营收超预期", "果链供应商订单预期上调", "消费电子板块情绪回暖", "关注立讯精密、歌尔股份等"],
+          },
+          {
+            id: "3",
+            tier: "行业动态",
+            event: "新能源汽车补贴政策调整",
+            linkedSector: ["新能源", "汽车", "锂电池"],
+            impact: "中性",
+            time: "10:00",
+            description: "国务院发布新能源汽车补贴政策调整方案，2027年前保持现有补贴力度，但对技术标准提出更高要求。",
+            source: "国务院",
+            logicChain: ["补贴力度维持", "技术门槛提升", "龙头企业受益、尾部出清", "行业格局优化但短期影响有限"],
+          },
+        ],
+        "2026-05-07": [
+          {
+            id: "4",
+            tier: "宏观经济",
+            event: "中国4月CPI数据发布",
+            linkedSector: ["消费", "零售"],
+            impact: "中性",
+            time: "09:30",
+            description: "国家统计局将发布4月份居民消费价格指数，市场预期同比增长2.1%。",
+            source: "国家统计局",
+            logicChain: ["CPI温和上涨", "通胀压力可控", "货币政策空间充裕", "消费复苏节奏平稳"],
+          },
+        ],
+        "2026-05-08": [
+          {
+            id: "5",
+            tier: "个股微观",
+            event: "特斯拉Model Z发布会",
+            linkedSector: ["新能源", "汽车", "AI"],
+            impact: "利好",
+            time: "22:00",
+            description: "特斯拉将在德州工厂举办新车发布会，预计推出全新Model Z系列，搭载最新FSD芯片。",
+            source: "Tesla",
+            logicChain: ["Model Z搭载最新FSD", "智能驾驶渗透率加速", "激光雷达+算力芯片需求提升", "关注禾赛科技、地平线等"],
+          },
+          {
+            id: "6",
+            tier: "行业动态",
+            event: "半导体出口管制升级",
+            linkedSector: ["半导体", "芯片设备"],
+            impact: "利空",
+            time: "08:00",
+            description: "美国商务部宣布新一轮半导体出口管制措施，限制更多先进制程设备出口。",
+            source: "美国商务部",
+            logicChain: ["先进制程设备受限", "国内晶圆厂扩产节奏放缓", "短期压制半导体设备估值", "中长期加速国产替代逻辑"],
+          },
+        ],
+        "2026-05-09": [
+          {
+            id: "7",
+            tier: "宏观经济",
+            event: "欧央行议息会议",
+            linkedSector: ["银行", "欧元区资产"],
+            impact: "利空",
+            time: "20:15",
+            description: "欧洲央行将召开5月议息会议，市场预期可能维持紧缩立场。",
+            source: "ECB",
+            logicChain: ["欧央行维持紧缩", "欧元区流动性收紧", "外资回流欧洲", "新兴市场资金面承压"],
+          },
+        ],
+        "2026-05-10": [
+          {
+            id: "8",
+            tier: "个股微观",
+            event: "英伟达GTC大会",
+            linkedSector: ["AI", "半导体", "数据中心"],
+            impact: "利好",
+            time: "10:00",
+            description: "英伟达将在GTC大会上发布新一代Blackwell架构GPU，预计性能提升40%。",
+            source: "NVIDIA",
+            logicChain: ["Blackwell架构发布", "AI算力需求再升级", "云厂商资本开支预期上调", "服务器、光模块、液冷产业链受益"],
+          },
+        ],
+      };
+
+      const state = {
+        today: resetTime(new Date()),
+        selectedDate: resetTime(new Date()),
+        viewCenterDate: resetTime(new Date()),
+        range: 15,
+        subscriptions: {},
+        realEventsByDate: null,
+      };
+
+      function resetTime(date) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      function keyOf(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function generateDateList(centerDate, range) {
+        const result = [];
+        for (let i = -range; i <= range; i++) {
+          const d = new Date(centerDate);
+          d.setDate(centerDate.getDate() + i);
+          d.setHours(0, 0, 0, 0);
+          const events = mockEvents[keyOf(d)] || [];
+          result.push({
+            date: d,
+            events,
+            isToday: d.getTime() === state.today.getTime(),
+            hasEvents: events.length > 0,
+          });
+        }
+        return result;
+      }
+
+      function normalizeTier(tierValue) {
+        const tier = String(tierValue || "").trim();
+        if (tier === "1" || tier === "宏观经济") return "宏观经济";
+        if (tier === "2" || tier === "个股微观") return "个股微观";
+        if (tier === "3" || tier === "行业动态") return "行业动态";
+        return "行业动态";
+      }
+
+      function normalizeImpact(impactValue) {
+        const impact = String(impactValue || "").trim();
+        if (impact === "利好" || impact.toLowerCase() === "bullish") return "利好";
+        if (impact === "利空" || impact.toLowerCase() === "bearish") return "利空";
+        return "中性";
+      }
+
+      function normalizeSectors(raw) {
+        if (Array.isArray(raw)) return raw.map((s) => String(s).trim()).filter(Boolean);
+        if (!raw) return [];
+        return String(raw)
+          .split(/[，,、/\s]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      function resolveDateKey(rawItem) {
+        const candidates = [rawItem.Date, rawItem.date, rawItem.Event_Date, rawItem.event_date, rawItem.Trade_Date, rawItem.trade_date];
+        for (const value of candidates) {
+          if (!value) continue;
+          const d = new Date(value);
+          if (!Number.isNaN(d.getTime())) return keyOf(d);
+          const match = String(value).match(/\d{4}-\d{2}-\d{2}/);
+          if (match) return match[0];
+        }
+        return keyOf(state.today);
+      }
+
+      function normalizeEvent(rawItem, index) {
+        const sectors = normalizeSectors(rawItem.Linked_Sector || rawItem.linked_sector || rawItem.linkedSector);
+        const eventTitle = rawItem.Event || rawItem.event || "未命名事件";
+        const description = rawItem.Description || rawItem.description || eventTitle;
+        const time = rawItem.Time || rawItem.time || "全天";
+        const source = rawItem.Source || rawItem.source || "";
+        const logicChain = Array.isArray(rawItem.logicChain)
+          ? rawItem.logicChain
+          : rawItem.Logic_Chain || rawItem.logic_chain
+            ? String(rawItem.Logic_Chain || rawItem.logic_chain)
+                .split(/[>＞→\-]+/)
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [];
+
+        return {
+          id: String(rawItem.id || rawItem.ID || `real-${index}`),
+          tier: normalizeTier(rawItem.Tier || rawItem.tier),
+          event: String(eventTitle),
+          linkedSector: sectors.length ? sectors : ["未分类"],
+          impact: normalizeImpact(rawItem.Impact || rawItem.impact),
+          time: String(time),
+          description: String(description),
+          source: String(source),
+          logicChain,
+        };
+      }
+
+      function toArrayData(rawText) {
+        const trimmed = String(rawText || "").trim();
+        if (!trimmed) return [];
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return parsed;
+          if (parsed && typeof parsed === "object") return [parsed];
+          return [];
+        } catch (_error) {
+          // 兼容 JSON Lines（每行一个 JSON 对象）
+          return trimmed
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => {
+              try {
+                return JSON.parse(line);
+              } catch (_e) {
+                return null;
+              }
+            })
+            .filter(Boolean);
+        }
+      }
+
+      function buildEventsByDate(rawList) {
+        const grouped = {};
+        rawList.forEach((item, idx) => {
+          if (!item || typeof item !== "object") return;
+          const dateKey = resolveDateKey(item);
+          if (!grouped[dateKey]) grouped[dateKey] = [];
+          grouped[dateKey].push(normalizeEvent(item, idx));
+        });
+        return grouped;
+      }
+
+      function getSelectedEvents(selectedDateKey) {
+        if (state.realEventsByDate) {
+          return state.realEventsByDate[selectedDateKey] || [];
+        }
+        return mockEvents[selectedDateKey] || [];
+      }
+
+      function formatDate(date) {
+        const days = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+        const months = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+        return {
+          day: String(date.getDate()).padStart(2, "0"),
+          weekday: days[date.getDay()],
+          month: months[date.getMonth()],
+          full: `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`,
+        };
+      }
+
+      function icon(name, cls) {
+        const c = cls || "h-4 w-4";
+        const paths = {
+          calendar: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+          up: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>`,
+          down: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>`,
+          minus: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+          sparkles: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.9 2.2 11.5 6l3.8 1.6-3.8 1.6-1.6 3.8-1.6-3.8L4.5 7.6 8.3 6z"></path><path d="m19 8 1 2.5L22.5 12 20 13.5 19 16l-1-2.5L15.5 12 18 10.5z"></path><path d="m17 2 .7 1.7L19.4 4.4 17.7 5 17 6.8 16.3 5 14.6 4.4 16.3 3.7z"></path></svg>`,
+          globe: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15 15 0 0 1 0 20"></path><path d="M12 2a15 15 0 0 0 0 20"></path></svg>`,
+          building: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="1"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg>`,
+          left: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>`,
+          right: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
+          brain: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2a3.5 3.5 0 0 0-3.4 4.5A4 4 0 0 0 4 10v.5A3.5 3.5 0 0 0 7.5 14H8"></path><path d="M14.5 2a3.5 3.5 0 0 1 3.4 4.5A4 4 0 0 1 20 10v.5a3.5 3.5 0 0 1-3.5 3.5H16"></path><path d="M8 14v4a4 4 0 0 0 8 0v-4"></path><path d="M12 2v16"></path></svg>`,
+          bell: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 21a2 2 0 0 0 3.4 0"></path><path d="M4 16h16l-1.7-2.9A6.9 6.9 0 0 1 17 9.6V9a5 5 0 0 0-10 0v.6c0 1.2-.3 2.4-1 3.5z"></path></svg>`,
+          plus: `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+        };
+        return paths[name] || "";
+      }
+
+      function impactIcon(impact) {
+        if (impact === "利好") return `<span class="text-red-400">${icon("up", "h-4 w-4")}</span>`;
+        if (impact === "利空") return `<span class="text-emerald-400">${icon("down", "h-4 w-4")}</span>`;
+        return `<span class="text-zinc-400">${icon("minus", "h-4 w-4")}</span>`;
+      }
+
+      function tierIcon(tier) {
+        if (tier === "宏观经济") return icon("globe", "h-4 w-4");
+        if (tier === "个股微观") return icon("building", "h-4 w-4");
+        return icon("sparkles", "h-4 w-4");
+      }
+
+      function logicChainBlock(chain, impact) {
+        const styles = {
+          利好: { bg: "bg-red-500/5", border: "border-red-500/20", text: "text-red-400", arrow: "text-red-500/60", glow: "from-red-500/10" },
+          利空: { bg: "bg-emerald-500/5", border: "border-emerald-500/20", text: "text-emerald-400", arrow: "text-emerald-500/60", glow: "from-emerald-500/10" },
+          中性: { bg: "bg-zinc-500/5", border: "border-zinc-500/20", text: "text-zinc-400", arrow: "text-zinc-500/60", glow: "from-zinc-500/10" },
+        }[impact];
+        return `
+          <div class="relative rounded-xl p-4 mb-4 ${styles.bg} border ${styles.border} overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r ${styles.glow} to-transparent opacity-50"></div>
+            <div class="relative flex items-center gap-2 mb-3">
+              <div class="flex items-center justify-center w-6 h-6 rounded-lg ${styles.bg} border ${styles.border}">
+                <span class="${styles.text}">${icon("brain", "h-3.5 w-3.5")}</span>
+              </div>
+              <span class="text-xs font-medium text-zinc-400">AI 推演链路</span>
+              <div class="flex-1 h-px bg-gradient-to-r from-zinc-700/50 to-transparent"></div>
+            </div>
+            <div class="relative flex flex-wrap items-center gap-2">
+              ${chain
+                .map(
+                  (step, idx) => `
+                    <div class="flex items-center gap-2">
+                      <div class="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#1a1f35]/80 backdrop-blur-sm border border-[#2a3142] text-zinc-300 transition-all duration-300 hover:border-blue-500/30 hover:bg-[#1a1f35]">${step}</div>
+                      ${idx < chain.length - 1 ? `<span class="${styles.arrow}">${icon("right", "h-4 w-4 flex-shrink-0")}</span>` : ""}
+                    </div>`
+                )
+                .join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      function render() {
+        const app = document.getElementById("app");
+        const dateList = generateDateList(state.viewCenterDate, state.range);
+        const selectedDateKey = keyOf(state.selectedDate);
+        const selectedEvents = getSelectedEvents(selectedDateKey);
+        const formatted = formatDate(state.selectedDate);
+
+        app.innerHTML = `
+          <div class="min-h-screen bg-[#0a0d14] p-4 md:p-8 text-zinc-100">
+            <header class="mb-8">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="relative">
+                  <div class="absolute inset-0 blur-lg bg-blue-500/30 rounded-lg"></div>
+                  <div class="relative p-2 bg-[#141824] border border-blue-500/30 rounded-lg text-blue-400">${icon("sparkles", "h-6 w-6")}</div>
+                </div>
+                <div>
+                  <h1 class="text-2xl font-bold text-zinc-100">AI 金融日历</h1>
+                  <p class="text-sm text-zinc-500">FinanceOS Terminal v2.0</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 mt-4 px-4 py-2 bg-[#141824] border border-[#2a3142] rounded-lg flex-wrap">
+                <div class="flex items-center gap-2">
+                  <div class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                  <span class="text-xs text-zinc-400">实时同步</span>
+                </div>
+                <div class="h-4 w-px bg-[#2a3142] hidden sm:block"></div>
+                <span id="live-time" class="text-xs text-zinc-500 font-mono"></span>
+                <div class="h-4 w-px bg-[#2a3142] hidden sm:block"></div>
+                <span class="text-xs text-zinc-500">数据源: Bloomberg / Reuters / 官方发布</span>
+              </div>
+            </header>
+
+            <div class="flex flex-col lg:flex-row gap-6">
+              <div class="w-full lg:w-1/3">
+                <div class="sticky top-4">
+                  <div class="rounded-2xl overflow-hidden bg-gradient-to-br from-[#141824] to-[#0d1117] border border-[#2a3142] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <div class="flex items-center justify-between p-4 border-b border-[#2a3142]">
+                      <h2 class="text-sm font-semibold text-zinc-300">事件日历</h2>
+                      <div class="flex items-center gap-1">
+                        <button id="btn-prev-range" type="button" class="p-1.5 rounded-lg hover:bg-[#1a1f35] text-zinc-500 hover:text-zinc-300 transition-colors">${icon("left", "h-4 w-4")}</button>
+                        <button id="btn-next-range" type="button" class="p-1.5 rounded-lg hover:bg-[#1a1f35] text-zinc-500 hover:text-zinc-300 transition-colors">${icon("right", "h-4 w-4")}</button>
+                      </div>
+                    </div>
+                    <div class="max-h-[600px] overflow-y-auto custom-scrollbar">
+                      ${dateList
+                        .map((item, index) => {
+                          const f = formatDate(item.date);
+                          const selected = item.date.getTime() === state.selectedDate.getTime();
+                          return `
+                          <button type="button" data-date="${keyOf(item.date)}" class="group relative w-full px-4 py-3 text-left transition-all duration-300 border-l-2 border-transparent hover:bg-[#1a1f35] hover:border-l-blue-500 ${selected ? "bg-[#1a1f35] border-l-blue-500" : ""} ${item.isToday ? "bg-[#141824]" : ""}">
+                            <div class="absolute inset-0 opacity-0 transition-opacity duration-300 bg-gradient-to-r from-blue-500/5 to-transparent group-hover:opacity-100 ${selected ? "opacity-100" : ""}"></div>
+                            <div class="relative flex items-center gap-4">
+                              <div class="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-[#0d1117] border border-[#2a3142] transition-all duration-300 group-hover:border-blue-500/50 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] ${selected ? "border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" : ""} ${item.isToday ? "border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" : ""}">
+                                <span class="text-lg font-bold font-mono ${item.isToday ? "text-amber-400" : "text-zinc-100"}">${f.day}</span>
+                                <span class="text-[10px] text-zinc-500 uppercase tracking-wider">${f.weekday}</span>
+                              </div>
+                              <div class="flex-1">
+                                <div class="text-sm text-zinc-400">${f.month}</div>
+                                ${
+                                  item.hasEvents
+                                    ? `<div class="flex items-center gap-1 mt-1">
+                                        <span class="text-xs text-blue-400">${item.events.length} 个事件</span>
+                                        <div class="flex gap-0.5">
+                                          ${item.events
+                                            .slice(0, 3)
+                                            .map((ev) => `<div class="h-1.5 w-1.5 rounded-full ${ev.impact === "利好" ? "bg-red-400" : ev.impact === "利空" ? "bg-emerald-400" : "bg-zinc-400"}"></div>`)
+                                            .join("")}
+                                        </div>
+                                      </div>`
+                                    : `<div class="text-xs text-zinc-600 mt-1">暂无事件</div>`
+                                }
+                              </div>
+                              ${item.isToday ? `<div class="absolute -right-1 top-1/2 -translate-y-1/2"><div class="px-2 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded text-[10px] text-amber-400 font-medium">今日</div></div>` : ""}
+                            </div>
+                          </button>`;
+                        })
+                        .join("")}
+                    </div>
+                    <div class="p-4 border-t border-[#2a3142] bg-[#0d1117]/50">
+                      <div class="flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-4">
+                          <div class="flex items-center gap-1.5"><div class="h-2 w-2 rounded-full bg-red-400"></div><span class="text-zinc-500">利好</span></div>
+                          <div class="flex items-center gap-1.5"><div class="h-2 w-2 rounded-full bg-emerald-400"></div><span class="text-zinc-500">利空</span></div>
+                          <div class="flex items-center gap-1.5"><div class="h-2 w-2 rounded-full bg-zinc-400"></div><span class="text-zinc-500">中性</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="w-full lg:w-2/3">
+                <div class="rounded-2xl p-6 bg-gradient-to-br from-[#141824] to-[#0d1117] border border-[#2a3142] shadow-[0_0_50px_rgba(0,0,0,0.5)] min-h-[600px]">
+                  <div class="flex items-center justify-between mb-6 pb-4 border-b border-[#2a3142]">
+                    <div>
+                      <h2 class="text-xl font-bold text-zinc-100">${formatted.full}</h2>
+                      <p class="text-sm text-zinc-500 mt-1">${formatted.weekday} · ${selectedEvents.length} 个金融事件</p>
+                    </div>
+                    <button type="button" id="btn-today" class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40">回到今天</button>
+                  </div>
+
+                  ${
+                    selectedEvents.length > 0
+                      ? `<div class="space-y-4">
+                        ${selectedEvents
+                          .map((event) => {
+                            const side = event.impact === "利好" ? "from-red-500/50 via-red-500/20" : event.impact === "利空" ? "from-emerald-500/50 via-emerald-500/20" : "from-zinc-500/50 via-zinc-500/20";
+                            const impactCls = event.impact === "利好" ? "bg-red-500/10 text-red-400" : event.impact === "利空" ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-500/10 text-zinc-400";
+                            return `
+                            <div class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-[#141824] to-[#0d1117] border border-[#2a3142] transition-all duration-500 hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transform hover:-translate-y-1">
+                              <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/5 via-transparent to-transparent"></div>
+                                <div class="absolute top-0 right-0 w-1/2 h-1/2 bg-gradient-to-bl from-blue-500/3 to-transparent"></div>
+                              </div>
+                              <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                              <div class="relative p-6">
+                                <div class="flex items-start justify-between mb-4">
+                                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1a1f35] border border-[#2a3142] text-xs font-medium text-zinc-300">${tierIcon(event.tier)}<span>${event.tier}</span></div>
+                                  <div class="flex items-center gap-2 text-xs text-zinc-500">${icon("calendar", "h-3.5 w-3.5")}<span class="font-mono">${event.time}</span></div>
+                                </div>
+                                <h3 class="text-xl font-bold text-zinc-100 mb-3 group-hover:text-blue-100 transition-colors">${event.event}</h3>
+                                <p class="text-sm text-zinc-400 leading-relaxed mb-4">${event.description}</p>
+                                ${event.logicChain && event.logicChain.length ? logicChainBlock(event.logicChain, event.impact) : ""}
+                                <div class="flex flex-wrap items-center gap-2 mb-4">
+                                  ${event.linkedSector
+                                    .map((sector) => {
+                                      const sub = !!state.subscriptions[sector];
+                                      return `
+                                        <div class="flex items-center gap-1">
+                                          <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all duration-300 cursor-default">${sector}</span>
+                                          <button type="button" data-subscribe="${sector}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-all duration-300 ${sub ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-transparent text-zinc-600 border border-transparent hover:text-zinc-400 hover:border-zinc-700"}">
+                                            ${sub ? `${icon("bell", "h-2.5 w-2.5")}<span>已订阅</span>` : `${icon("plus", "h-2.5 w-2.5")}<span>订阅</span>`}
+                                          </button>
+                                        </div>`;
+                                    })
+                                    .join("")}
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-[#2a3142]">
+                                  <div class="flex items-center gap-3">
+                                    <span class="text-xs text-zinc-500">影响评估</span>
+                                    <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg ${impactCls}">
+                                      ${impactIcon(event.impact)}
+                                      <span class="text-sm font-medium">${event.impact}</span>
+                                    </div>
+                                  </div>
+                                  <button type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-transparent text-zinc-500 border border-zinc-700/50 hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/30 transition-all duration-300">${icon("bell", "h-3.5 w-3.5")}<span>加入自选雷达</span></button>
+                                </div>
+                                ${event.source ? `<div class="mt-3 pt-3 border-t border-[#2a3142]/50 text-xs text-zinc-600">数据来源: <span class="text-zinc-500">${event.source}</span></div>` : ""}
+                              </div>
+                              <div class="absolute left-0 top-6 bottom-6 w-[2px] bg-gradient-to-b ${side} to-transparent"></div>
+                            </div>`;
+                          })
+                          .join("")}
+                      </div>`
+                      : `<div class="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+                          <div class="relative mb-6">
+                            <div class="absolute inset-0 blur-xl bg-blue-500/20 rounded-full"></div>
+                            <div class="relative p-6 rounded-2xl bg-[#141824] border border-[#2a3142]">${icon("calendar", "h-12 w-12 text-zinc-600")}</div>
+                          </div>
+                          <h3 class="text-lg font-semibold text-zinc-400 mb-2">暂无金融事件</h3>
+                          <p class="text-sm text-zinc-600 max-w-xs">当前日期没有重要的金融事件，请选择其他日期查看</p>
+                        </div>`
+                  }
+                </div>
+              </div>
+            </div>
+            <footer class="mt-8 text-center">
+              <p class="text-xs text-zinc-600">数据仅供参考，不构成投资建议 · FinanceOS © 2026</p>
+            </footer>
+          </div>
+        `;
+
+        document.querySelectorAll("[data-date]").forEach((el) => {
+          el.addEventListener("click", () => {
+            const [y, m, d] = el.getAttribute("data-date").split("-").map(Number);
+            state.selectedDate = new Date(y, m - 1, d);
+            render();
+          });
+        });
+
+        const btnToday = document.getElementById("btn-today");
+        if (btnToday) {
+          btnToday.addEventListener("click", () => {
+            state.selectedDate = new Date(state.today);
+            state.viewCenterDate = new Date(state.today);
+            render();
+          });
+        }
+
+        const btnPrevRange = document.getElementById("btn-prev-range");
+        if (btnPrevRange) {
+          btnPrevRange.addEventListener("click", () => {
+            const d = new Date(state.viewCenterDate);
+            d.setDate(d.getDate() - 1);
+            state.viewCenterDate = d;
+            render();
+          });
+        }
+
+        const btnNextRange = document.getElementById("btn-next-range");
+        if (btnNextRange) {
+          btnNextRange.addEventListener("click", () => {
+            const d = new Date(state.viewCenterDate);
+            d.setDate(d.getDate() + 1);
+            state.viewCenterDate = d;
+            render();
+          });
+        }
+
+        document.querySelectorAll("[data-subscribe]").forEach((el) => {
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const sector = el.getAttribute("data-subscribe");
+            state.subscriptions[sector] = !state.subscriptions[sector];
+            render();
+          });
+        });
+
+        updateClock();
+      }
+
+      function updateClock() {
+        const node = document.getElementById("live-time");
+        if (!node) return;
+        node.textContent = new Date().toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+
+      async function loadRealDataOnMount() {
+        // 等价 React: useEffect(() => { ... }, [])
+        try {
+          const response = await fetch("./data.json", { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const text = await response.text();
+          const rawList = toArrayData(text);
+          state.realEventsByDate = buildEventsByDate(rawList);
+        } catch (error) {
+          // 读取失败时自动回退到内置假数据，保证页面可用
+          state.realEventsByDate = null;
+          console.warn("读取 data.json 失败，已回退为内置数据：", error);
+        } finally {
+          render();
+        }
+      }
+
+      loadRealDataOnMount();
+      setInterval(updateClock, 1000);
+    </script>
+  </body>
+</html>
